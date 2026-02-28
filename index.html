@@ -394,7 +394,34 @@ body {
   cursor: pointer; text-align: center; flex-shrink: 0;
 }
 
-/* ─── EDITOR MODAL ─── */
+.mode-lyrics { color: #e040fb !important; border-color: #e040fb !important; }
+.mode-lyrics.active-mode { background: #e040fb22 !important; }
+
+/* Lyrics-only mode: hide chord lines, inline chord spans */
+body.lyrics-mode .line-chords { display: none !important; }
+body.lyrics-mode .inline-chord { display: none !important; }
+body.lyrics-mode .empty-line { height: 0.5em !important; }
+
+/* Show mode: chord spans in lyrics are tappable */
+body.show-mode-paused .line-lyric .inline-chord { 
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+body.show-mode-paused .line-lyric .chord-token {
+  cursor: pointer;
+  color: var(--chord-color);
+  font-size: 0.75em;
+  vertical-align: super;
+  margin: 0 2px;
+  text-decoration: underline dotted;
+}
+
+/* chord-token base style (always visible in chord lines, clickable always) */
+.chord-token {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.chord-token:active { opacity: 0.6; }
 #editor-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 200; align-items: flex-end; }
 #editor-overlay.open { display: flex; }
 #editor-modal {
@@ -531,6 +558,7 @@ body {
   <button class="hdr-btn" onclick="restartSong()" title="Reiniciar">↺</button>
   <div id="song-title">BUSKERSET 🎸</div>
   <button class="hdr-btn mode-show" id="mode-btn" onclick="toggleMode()">🎤 SHOW</button>
+  <button class="hdr-btn mode-lyrics" id="lyrics-btn" onclick="toggleLyricsMode()">🎤 LETRA</button>
   <button class="hdr-btn" id="chords-btn" onclick="openChordGrid()" style="display:none" title="Ver acordes">🎸</button>
   <button class="hdr-btn" onclick="openSidebar()">☰</button>
 </div>
@@ -671,6 +699,25 @@ body {
   <div id="manual-body">
 
     <div class="manual-section">
+      <h3>🎵 MODO LETRA — Solo texto</h3>
+      <div class="manual-row">
+        <div class="manual-key">🎤 LETRA</div>
+        <div class="manual-desc">Botón en el header (color violeta). Oculta todos los acordes — solo queda la letra limpia. Ideal cuando ya sabés los acordes y solo necesitás el texto.</div>
+      </div>
+      <div class="manual-row">
+        <div class="manual-key">AUTO-SCROLL</div>
+        <div class="manual-desc">El auto-scroll funciona igual que en Modo Show: ▶ para iniciar, ⏸ para pausar, velocidad ajustable.</div>
+      </div>
+      <div class="manual-row">
+        <div class="manual-key">DESACTIVAR</div>
+        <div class="manual-desc">Tocá de nuevo el botón 🎤 LETRA para volver a la vista normal con acordes.</div>
+      </div>
+      <div class="manual-tip">
+        💡 Perfecta para canciones en inglés donde las letras son difíciles de memorizar. Sin acordes a la vista, podés concentrarte 100% en el texto.
+      </div>
+    </div>
+
+    <div class="manual-section">
       <h3>🎤 MODO SHOW — Teleprompter</h3>
       <div class="manual-row">
         <div class="manual-key">TOQUE ARRIBA</div>
@@ -686,7 +733,7 @@ body {
       </div>
       <div class="manual-row">
         <div class="manual-key">⏸ PAUSA</div>
-        <div class="manual-desc">Detiene el scroll y vuelve a mostrar los controles.</div>
+        <div class="manual-desc">Detiene el scroll y vuelve a mostrar los controles. En pausa, podés tocar cualquier acorde visible en la letra para ver su diagrama en popup.</div>
       </div>
       <div class="manual-row">
         <div class="manual-key">↺ REINICIAR</div>
@@ -1113,6 +1160,7 @@ let currentSongIndex = -1;
 let editingIndex = null;
 let editingChordName = null;
 let studyMode = false;
+let lyricsMode = false;
 
 // ══════════════════════════════════════════════════════
 //  SCROLL + PLAY
@@ -1132,6 +1180,7 @@ function startPlaying() {
   playing = true;
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('playing-panel').classList.add('visible');
+  document.body.classList.remove('show-mode-paused');
   lastTime = null;
   raf = requestAnimationFrame(tick);
 }
@@ -1141,6 +1190,10 @@ function pausePlaying() {
   cancelAnimationFrame(raf);
   document.getElementById('setup-panel').style.display = '';
   document.getElementById('playing-panel').classList.remove('visible');
+  // In show mode (not study, not lyrics), mark as paused so chord tapping works
+  if (!studyMode && !lyricsMode) {
+    document.body.classList.add('show-mode-paused');
+  }
 }
 
 function showSetup() {
@@ -1148,6 +1201,7 @@ function showSetup() {
   cancelAnimationFrame(raf);
   document.getElementById('setup-panel').style.display = '';
   document.getElementById('playing-panel').classList.remove('visible');
+  document.body.classList.remove('show-mode-paused');
 }
 
 function restartSong() {
@@ -1196,7 +1250,28 @@ function updateCurrentChord() {
 //  MODE TOGGLE
 // ══════════════════════════════════════════════════════
 function toggleMode() {
+  // Cycle: SHOW → ESTUDIO → SHOW
+  // Lyrics mode is a separate toggle via its own button
+  if (lyricsMode) {
+    // If lyrics mode is on, turn it off first and go to SHOW
+    setLyricsMode(false);
+    setStudyMode(false);
+    return;
+  }
   studyMode = !studyMode;
+  setStudyMode(studyMode);
+}
+
+function toggleLyricsMode() {
+  setLyricsMode(!lyricsMode);
+  if (lyricsMode) {
+    // Exit study mode when entering lyrics mode
+    setStudyMode(false, /*skipRerender*/true);
+  }
+}
+
+function setStudyMode(on, skipRerender) {
+  studyMode = on;
   const btn = document.getElementById('mode-btn');
   const chordsBtn = document.getElementById('chords-btn');
   const area = document.getElementById('scroll-area');
@@ -1207,23 +1282,48 @@ function toggleMode() {
     btn.className = 'hdr-btn mode-study';
     chordsBtn.style.display = '';
     area.classList.add('study-mode');
-    // disable play in study mode
     playing = false;
     cancelAnimationFrame(raf);
     document.getElementById('playing-panel').classList.remove('visible');
     setupPanel.style.display = 'none';
-    // sync scroll
     area.scrollTop = scrollY;
+    document.body.classList.remove('lyrics-mode');
+    document.body.classList.remove('show-mode-paused');
   } else {
     btn.textContent = '🎤 SHOW';
     btn.className = 'hdr-btn mode-show';
     chordsBtn.style.display = 'none';
     area.classList.remove('study-mode');
-    setupPanel.style.display = '';
-    // sync scroll back
+    setupPanel.style.display = lyricsMode ? 'none' : '';
     scrollY = area.scrollTop;
     document.getElementById('lyrics-wrapper').style.transform = `translateY(${-scrollY}px)`;
   }
+  if (!skipRerender && currentSongIndex >= 0) rerenderLyrics();
+}
+
+function setLyricsMode(on) {
+  lyricsMode = on;
+  const btn = document.getElementById('lyrics-btn');
+  const setupPanel = document.getElementById('setup-panel');
+  const area = document.getElementById('scroll-area');
+
+  if (lyricsMode) {
+    btn.textContent = '🎵 LETRA';
+    btn.className = 'hdr-btn mode-lyrics active-mode';
+    document.body.classList.add('lyrics-mode');
+    document.body.classList.remove('show-mode-paused');
+    // Lyrics mode uses auto-scroll too (same show controls)
+    setupPanel.style.display = studyMode ? 'none' : '';
+    area.classList.remove('study-mode');
+    scrollY = area.scrollTop;
+    document.getElementById('lyrics-wrapper').style.transform = `translateY(${-scrollY}px)`;
+  } else {
+    btn.textContent = '🎤 LETRA';
+    btn.className = 'hdr-btn mode-lyrics';
+    document.body.classList.remove('lyrics-mode');
+    setupPanel.style.display = studyMode ? 'none' : '';
+  }
+  if (currentSongIndex >= 0) rerenderLyrics();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1425,7 +1525,7 @@ function transposeChordLine(line, steps) {
 function parseInlineChords(line, steps) {
   return line.replace(/\[([^\]]+)\]/g, (_, chord) => {
     const transposed = transposeChordName(chord, steps);
-    return `<span class="inline-chord">${transposed}</span>`;
+    return `<span class="inline-chord" onclick="showChordPopup('${transposed}')">${transposed}</span>`;
   });
 }
 
@@ -1468,9 +1568,14 @@ function rerenderLyrics() {
     } else if (block.type === 'chord-line') {
       div.className = 'line-chords';
       div.style.fontSize = (fontSize * 0.82) + 'px';
-      div.textContent = transposeChordLine(block.text, transposeSteps);
+      const transposedLine = transposeChordLine(block.text, transposeSteps);
       const chords = extractChordsFromChordLine(block.text);
       chords.forEach(ch => songChords.push({ chord: ch, lineIndex: lyricLineIdx }));
+      // Render chord line with clickable spans per chord
+      div.innerHTML = transposedLine.replace(
+        /[A-G][b#]?(m(?:aj)?7?|maj7?|dim|aug|sus[24]?|add9?|[5679]|11|13|m7b5|7sus4)?(?:[b#](?:5|9))?/g,
+        match => `<span class="chord-token" onclick="showChordPopup('${match}')">${match}</span>`
+      );
       currentY += fontSize * 1.5 * 0.82;
     } else {
       div.className = 'line-lyric';
