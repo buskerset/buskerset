@@ -633,28 +633,38 @@ body.show-mode-paused .line-lyric .chord-token {
 
 #tuner-needle-wrap { width: 100%; max-width: 300px; }
 #tuner-needle-track {
-  position: relative; height: 36px;
+  position: relative; height: 64px;
   background: var(--panel-bg);
-  border-radius: 18px; overflow: hidden;
-  border: 1px solid var(--ui-border);
+  border-radius: 12px; overflow: hidden;
+  border: 1.5px solid var(--ui-border);
+}
+#tuner-needle-fill {
+  position: absolute; top: 0; height: 100%;
+  opacity: 0.15; pointer-events: none;
+  transition: left 0.08s ease-out, width 0.08s ease-out;
 }
 #tuner-needle {
-  position: absolute; top: 50%; left: 50%;
-  width: 3px; height: 28px;
-  background: var(--text); border-radius: 2px;
-  transform: translate(-50%, -50%);
+  position: absolute; top: 6px; left: 50%;
+  width: 6px; height: calc(100% - 12px);
+  background: var(--text); border-radius: 3px;
+  transform: translateX(-50%);
   transition: left 0.08s ease-out, background 0.2s;
-  transform-origin: center center;
 }
 #tuner-needle.in-tune { background: #4caf50; }
-#tuner-needle.sharp { background: #ff9800; }
-#tuner-needle.flat { background: #2196f3; }
+#tuner-needle.sharp   { background: #ff9800; }
+#tuner-needle.flat    { background: #2196f3; }
 #tuner-center-mark {
   position: absolute; top: 0; left: 50%;
-  width: 1px; height: 100%;
-  background: var(--chord-color); opacity: 0.4;
+  width: 2px; height: 100%;
+  background: var(--chord-color); opacity: 0.5;
   transform: translateX(-50%);
 }
+.tuner-tick {
+  position: absolute; top: 0; width: 1px; height: 40%;
+  background: var(--ui-text); opacity: 0.25;
+  transform: translateX(-50%);
+}
+.tuner-tick.major { height: 55%; opacity: 0.4; }
 #tuner-needle-labels {
   display: flex; justify-content: space-between;
   padding: 2px 8px 0;
@@ -754,9 +764,9 @@ body.show-mode-paused .line-lyric .chord-token {
         <input type="range" id="speed-slider" min="1" max="100" value="20" oninput="setSpeedFromSlider(this.value)">
       </div>
       <div id="theme-pills">
-        <div class="theme-pill active" style="background:#0a0a0a" onclick="setTheme('night-classic',this)" title="Nocturno clásico"></div>
+        <div class="theme-pill" style="background:#0a0a0a" onclick="setTheme('night-classic',this)" title="Nocturno clásico"></div>
         <div class="theme-pill" style="background:#1a2218" onclick="setTheme('night-soft',this)" title="Nocturno suave"></div>
-        <div class="theme-pill" style="background:#f5f5f5" onclick="setTheme('day-light',this)" title="Diurno claro"></div>
+        <div class="theme-pill active" style="background:#f5f5f5" onclick="setTheme('day-light',this)" title="Diurno claro"></div>
         <div class="theme-pill" style="background:#fdf6e3" onclick="setTheme('day-amber',this)" title="Diurno ámbar"></div>
       </div>
     </div>
@@ -801,11 +811,21 @@ body.show-mode-paused .line-lyric .chord-token {
       <div id="tuner-detected-note">—</div>
       <div id="tuner-needle-wrap">
         <div id="tuner-needle-track">
+          <div id="tuner-needle-fill"></div>
           <div id="tuner-needle"></div>
           <div id="tuner-center-mark"></div>
+          <!-- tick marks at ±10, ±20, ±30, ±40 cents -->
+          <div class="tuner-tick" style="left:10%"></div>
+          <div class="tuner-tick" style="left:20%"></div>
+          <div class="tuner-tick major" style="left:30%"></div>
+          <div class="tuner-tick" style="left:40%"></div>
+          <div class="tuner-tick" style="left:60%"></div>
+          <div class="tuner-tick" style="left:70%"></div>
+          <div class="tuner-tick major" style="left:80%"></div>
+          <div class="tuner-tick" style="left:90%"></div>
         </div>
         <div id="tuner-needle-labels">
-          <span>♭</span><span>AFINADO</span><span>♯</span>
+          <span>♭ −50</span><span>AFINADO</span><span>+50 ♯</span>
         </div>
       </div>
       <div id="tuner-cents-display">— cents</div>
@@ -2126,11 +2146,11 @@ function closeSidebar() {
     document.getElementById('speed-slider').value = speedToSlider(speed);
   }
 
-  const savedTheme = localStorage.getItem('sp-theme') || 'night-classic';
+  const savedTheme = localStorage.getItem('sp-theme') || 'day-light';
   const themeKeys = ['night-classic','night-soft','day-light','day-amber'];
   const idx = themeKeys.indexOf(savedTheme);
   const pills = document.querySelectorAll('.theme-pill');
-  setTheme(savedTheme, idx >= 0 ? pills[idx] : null);
+  setTheme(savedTheme, idx >= 0 ? pills[idx] : pills[2]);
 
   const lastSong = localStorage.getItem('sp-last-song');
   if (lastSong !== null && songs[parseInt(lastSong)]) {
@@ -2184,6 +2204,7 @@ let tunerRafId = null;
 let tunerOscillator = null;
 let tunerGainNode = null;
 let tunerRefPlaying = false;
+let tunerFreqHistory = []; // smoothing buffer
 
 function openTuner() {
   document.getElementById('tuner-overlay').classList.add('open');
@@ -2250,7 +2271,8 @@ async function startMic() {
     tunerMicStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
     const source = tunerAudioCtx.createMediaStreamSource(tunerMicStream);
     tunerAnalyser = tunerAudioCtx.createAnalyser();
-    tunerAnalyser.fftSize = 8192;
+    tunerAnalyser.fftSize = 32768;
+    tunerAnalyser.smoothingTimeConstant = 0.0;
     source.connect(tunerAnalyser);
 
     tunerMicActive = true;
@@ -2266,6 +2288,7 @@ async function startMic() {
 
 function stopMic() {
   tunerMicActive = false;
+  tunerFreqHistory = [];
   cancelAnimationFrame(tunerRafId);
   if (tunerMicStream) { tunerMicStream.getTracks().forEach(t => t.stop()); tunerMicStream = null; }
   const btn = document.getElementById('tuner-mic-btn');
@@ -2283,7 +2306,11 @@ function tunerLoop() {
   if (!tunerMicActive) return;
   const freq = detectPitch();
   if (freq && freq > 30 && freq < 1500) {
-    const result = freqToNoteInfo(freq);
+    // Smooth over last 4 frames
+    tunerFreqHistory.push(freq);
+    if (tunerFreqHistory.length > 4) tunerFreqHistory.shift();
+    const smoothed = tunerFreqHistory.reduce((a,b) => a+b, 0) / tunerFreqHistory.length;
+    const result = freqToNoteInfo(smoothed);
     const noteEl = document.getElementById('tuner-detected-note');
     noteEl.textContent = result.note;
     document.getElementById('tuner-freq-display').textContent = freq.toFixed(1) + ' Hz';
@@ -2291,15 +2318,23 @@ function tunerLoop() {
     // Needle: cents range ±50 → 0%–100%
     const pct = Math.max(0, Math.min(100, 50 + result.cents));
     const needle = document.getElementById('tuner-needle');
+    const fill = document.getElementById('tuner-needle-fill');
     needle.style.left = pct + '%';
+    // Fill goes from center (50%) to needle position
+    const fillLeft  = Math.min(50, pct);
+    const fillWidth = Math.abs(pct - 50);
+    fill.style.left  = fillLeft + '%';
+    fill.style.width = fillWidth + '%';
     const absCents = Math.abs(result.cents);
+    let color = '#4caf50';
     if (absCents <= 5) {
-      needle.className = 'in-tune'; noteEl.className = 'in-tune';
+      needle.className = 'in-tune'; noteEl.className = 'in-tune'; color = '#4caf50';
     } else if (result.cents > 5) {
-      needle.className = 'sharp'; noteEl.className = 'sharp';
+      needle.className = 'sharp';   noteEl.className = 'sharp';   color = '#ff9800';
     } else {
-      needle.className = 'flat'; noteEl.className = 'flat';
+      needle.className = 'flat';    noteEl.className = 'flat';    color = '#2196f3';
     }
+    fill.style.background = color;
   }
   tunerRafId = requestAnimationFrame(tunerLoop);
 }
@@ -2320,7 +2355,7 @@ function detectPitch() {
   let rms = 0;
   for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / size);
-  if (rms < 0.01) return null; // silence
+  if (rms < 0.003) return null; // silence — lower threshold for better sensitivity
 
   let r1 = 0, r2 = size - 1, thres = 0.2;
   for (let i = 0; i < size / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
