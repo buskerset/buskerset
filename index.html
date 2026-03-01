@@ -793,7 +793,345 @@ body.show-mode-paused .line-lyric .chord-token  { cursor:pointer; color:var(--ch
   font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   font-weight:700; font-size:0.9rem; cursor:pointer; transition:all var(--ease);
 }
-#tuner-play-ref:active { transform:scale(0.95); opacity:0.8; }</style>
+#tuner-play-ref:active { transform:scale(0.95); opacity:0.8; }
+
+/* ── FAVORITES ── */
+.fav-btn {
+  background:none; border:none; cursor:pointer;
+  font-size:1.1rem; padding:0 2px;
+  opacity:0.5; transition:opacity var(--ease), transform var(--ease);
+  line-height:1;
+}
+.fav-btn.active { opacity:1; }
+.fav-btn:active { transform:scale(1.3); }
+#fav-filter-btn {
+  margin:0 10px 8px;
+  padding:9px 14px;
+  background:transparent; border:1px solid var(--ui-border);
+  border-radius:8px; color:var(--ui-text);
+  font-family:'Bebas Neue',sans-serif; letter-spacing:2px; font-size:0.85rem;
+  cursor:pointer; text-align:center; transition:all var(--ease);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+#fav-filter-btn.active {
+  background:rgba(255,214,10,0.1);
+  border-color:rgba(255,214,10,0.5);
+  color:#ffd60a;
+}
+
+/* ── SHOWLIST ── */
+#showlist-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  z-index:900; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity 0.25s;
+  backdrop-filter:blur(6px);
+}
+#showlist-overlay.open { opacity:1; pointer-events:all; }
+#showlist-modal {
+  background:var(--panel-bg); border-radius:20px 20px 0 0;
+  width:100%; max-width:480px; max-height:88vh;
+  display:flex; flex-direction:column;
+  box-shadow:0 -4px 40px rgba(0,0,0,0.3);
+  overflow:hidden;
+  transform:translateY(40px); transition:transform 0.28s cubic-bezier(.32,.72,0,1);
+}
+#showlist-overlay.open #showlist-modal { transform:translateY(0); }
+#showlist-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 16px 12px; border-bottom:0.5px solid var(--sep);
+  flex-shrink:0;
+}
+#showlist-header h2 {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:2px;
+  font-size:1.2rem; color:var(--chord-color); margin:0;
+}
+#showlist-close {
+  background:var(--fill3); border:none; color:var(--text-secondary);
+  font-size:0.85rem; font-weight:600; cursor:pointer;
+  width:30px; height:30px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+}
+#showlist-close:active { opacity:0.5; }
+#showlist-tabs {
+  display:flex; border-bottom:0.5px solid var(--sep); flex-shrink:0;
+}
+.sl-tab {
+  flex:1; padding:11px 8px;
+  background:none; border:none; cursor:pointer;
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1.5px;
+  font-size:0.82rem; color:var(--text-secondary);
+  border-bottom:2px solid transparent; transition:all var(--ease);
+}
+.sl-tab.active { color:var(--chord-color); border-bottom-color:var(--chord-color); }
+.sl-tab:active { opacity:0.6; }
+#showlist-body { overflow-y:auto; flex:1; padding:0; }
+
+/* Create tab */
+#sl-create-panel, #sl-manage-panel { display:none; }
+#sl-create-panel.visible, #sl-manage-panel.visible { display:block; }
+
+#sl-setlist-name {
+  width:100%; box-sizing:border-box;
+  padding:12px 14px; margin:12px 0 0;
+  background:var(--panel-input-bg); border:0.5px solid var(--sep);
+  border-radius:10px; color:var(--panel-text);
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:1rem;
+  outline:none;
+}
+#sl-setlist-name::placeholder { color:var(--text-secondary); opacity:0.5; }
+#sl-song-picker-wrap { padding:0 0 8px; }
+.sl-picker-label {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.72rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.5px; color:var(--text-tertiary);
+  padding:10px 16px 4px;
+}
+.sl-picker-item {
+  display:flex; align-items:center; padding:10px 16px; gap:10px;
+  cursor:pointer; transition:background var(--ease);
+}
+.sl-picker-item:active { background:var(--panel-item-hover); }
+.sl-picker-check {
+  width:20px; height:20px; border-radius:50%;
+  border:1.5px solid var(--sep); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.7rem; transition:all var(--ease);
+}
+.sl-picker-item.selected .sl-picker-check {
+  background:var(--chord-color); border-color:var(--chord-color); color:#000;
+}
+.sl-picker-name {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.92rem; color:var(--text-primary); flex:1;
+}
+.sl-picker-fav { font-size:0.8rem; }
+#sl-create-footer {
+  display:flex; gap:8px; padding:12px 16px;
+  border-top:0.5px solid var(--sep); flex-shrink:0;
+  background:var(--panel-bg);
+}
+.sl-footer-btn {
+  flex:1; padding:12px;
+  border-radius:10px; border:none; cursor:pointer;
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:0.9rem;
+  transition:all var(--ease);
+}
+.sl-footer-btn:active { transform:scale(0.96); }
+.sl-footer-btn.cancel { background:var(--panel-cancel-bg); color:var(--text-secondary); }
+.sl-footer-btn.save { background:var(--chord-color); color:#000; }
+
+/* Manage tab */
+#sl-manage-header { padding:10px 16px 0; display:flex; gap:8px; align-items:center; }
+#sl-manage-header span {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.78rem; color:var(--text-tertiary);
+}
+.sl-list-item {
+  display:flex; align-items:center; padding:12px 16px; gap:10px;
+  border-bottom:0.5px solid var(--sep); cursor:pointer;
+  transition:background var(--ease);
+}
+.sl-list-item:active { background:var(--panel-item-hover); }
+.sl-list-icon { font-size:1.1rem; flex-shrink:0; }
+.sl-list-info { flex:1; min-width:0; }
+.sl-list-name {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px;
+  font-size:1rem; color:var(--text-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.sl-list-count {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.72rem; color:var(--text-tertiary); margin-top:1px;
+}
+.sl-list-actions { display:flex; gap:6px; }
+.sl-list-actions button {
+  background:var(--fill3); border:none; color:var(--text-secondary);
+  font-size:0.8rem; cursor:pointer; padding:5px 8px;
+  border-radius:6px; transition:opacity var(--ease);
+}
+.sl-list-actions button:active { opacity:0.5; }
+.sl-empty-msg {
+  padding:30px 20px; text-align:center;
+  color:var(--text-tertiary);
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.85rem; line-height:1.6;
+}
+
+/* ShowList playback bar */
+#showlist-bar {
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--panel-bg); border-top:1px solid var(--sep);
+  padding:10px 14px; z-index:400;
+  display:none; flex-direction:column; gap:6px;
+  box-shadow:0 -2px 20px rgba(0,0,0,0.2);
+}
+#showlist-bar.visible { display:flex; }
+#showlist-bar-top {
+  display:flex; align-items:center; gap:8px;
+}
+#showlist-bar-title {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px;
+  font-size:0.8rem; color:var(--chord-color); flex-shrink:0;
+}
+#showlist-bar-song {
+  flex:1; font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.82rem; font-weight:600; color:var(--text-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#showlist-bar-counter {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.72rem; color:var(--text-tertiary); flex-shrink:0;
+}
+#showlist-bar-btns { display:flex; gap:6px; }
+.slbar-btn {
+  flex:1; padding:9px 4px;
+  background:var(--fill3); border:none; border-radius:8px;
+  color:var(--text-secondary); cursor:pointer;
+  font-family:'Bebas Neue',sans-serif; letter-spacing:0.5px; font-size:0.75rem;
+  transition:all var(--ease);
+}
+.slbar-btn:active { transform:scale(0.95); opacity:0.7; }
+.slbar-btn.end { background:rgba(255,69,58,0.15); color:#ff453a; border:1px solid rgba(255,69,58,0.3); }
+.slbar-btn.next { background:rgba(48,209,88,0.15); color:var(--chord-color); border:1px solid rgba(48,209,88,0.3); }
+#showlist-progress {
+  display:flex; gap:4px; flex-wrap:wrap;
+}
+.sl-progress-dot {
+  height:3px; flex:1; min-width:10px; max-width:32px;
+  border-radius:2px; background:var(--sep); transition:background 0.3s;
+}
+.sl-progress-dot.done { background:var(--chord-color); opacity:0.6; }
+.sl-progress-dot.current { background:var(--chord-color); }
+
+/* ── CHORD VARIANTS SHEET ── */
+#variants-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.65);
+  z-index:950; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity 0.22s;
+  backdrop-filter:blur(8px);
+}
+#variants-overlay.open { opacity:1; pointer-events:all; }
+#variants-sheet {
+  background:var(--panel-bg); border-radius:20px 20px 0 0;
+  width:100%; max-width:480px; max-height:82vh;
+  display:flex; flex-direction:column; overflow:hidden;
+  box-shadow:0 -4px 40px rgba(0,0,0,0.35);
+  transform:translateY(50px); transition:transform 0.28s cubic-bezier(.32,.72,0,1);
+}
+#variants-overlay.open #variants-sheet { transform:translateY(0); }
+#variants-sheet-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px 10px; border-bottom:0.5px solid var(--sep); flex-shrink:0;
+}
+#variants-sheet-title {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:2px;
+  font-size:1.3rem; color:var(--chord-color);
+}
+#variants-sheet-close {
+  background:var(--fill3); border:none; color:var(--text-secondary);
+  width:30px; height:30px; border-radius:50%; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.85rem; font-weight:600;
+}
+#variants-sheet-close:active { opacity:0.5; }
+#variants-global-row {
+  padding:10px 16px; border-bottom:0.5px solid var(--sep);
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+}
+#variants-global-label {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.78rem; font-weight:600; color:var(--text-secondary);
+}
+#variants-global-hint {
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.68rem; color:var(--text-tertiary); margin-top:1px;
+}
+#variants-mode-pills {
+  display:flex; gap:5px;
+}
+.vmode-pill {
+  padding:5px 10px; border-radius:20px;
+  border:1px solid var(--sep); background:none;
+  color:var(--text-secondary); cursor:pointer;
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:0.72rem;
+  transition:all var(--ease);
+}
+.vmode-pill.active { background:var(--chord-color); border-color:var(--chord-color); color:#000; }
+.vmode-pill:active { transform:scale(0.93); }
+#variants-list {
+  overflow-y:auto; flex:1; padding:12px 16px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.variant-card {
+  display:flex; align-items:center; gap:14px;
+  padding:12px 14px; border-radius:14px;
+  border:1.5px solid var(--sep); cursor:pointer;
+  transition:all var(--ease); background:var(--panel-bg2);
+  position:relative;
+}
+.variant-card:active { transform:scale(0.98); opacity:0.8; }
+.variant-card.selected {
+  border-color:var(--chord-color);
+  background:rgba(48,209,88,0.08);
+}
+.variant-card-svg { flex-shrink:0; color:var(--chord-color); }
+.variant-card-info { flex:1; min-width:0; }
+.variant-card-name {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1.5px;
+  font-size:1.1rem; color:var(--text-primary); line-height:1;
+}
+.variant-card-tag {
+  display:inline-block; margin-top:4px;
+  padding:2px 8px; border-radius:20px;
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+}
+.tag-easy    { background:rgba(48,209,88,0.15); color:#30d158; }
+.tag-standard{ background:rgba(255,214,10,0.15); color:#ffd60a; }
+.tag-jazz    { background:rgba(10,132,255,0.15); color:#0a84ff; }
+.tag-barre   { background:rgba(255,149,0,0.15);  color:#ff9500; }
+.tag-folk    { background:rgba(191,90,242,0.15); color:#bf5af2; }
+.tag-rock    { background:rgba(255,69,58,0.15);  color:#ff453a; }
+.variant-card-check {
+  position:absolute; top:10px; right:12px;
+  width:20px; height:20px; border-radius:50%;
+  background:var(--chord-color); color:#000;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.7rem; font-weight:900;
+  opacity:0; transition:opacity 0.15s;
+}
+.variant-card.selected .variant-card-check { opacity:1; }
+#variants-reset-row {
+  padding:10px 16px 14px; border-top:0.5px solid var(--sep); flex-shrink:0;
+}
+#variants-reset-btn {
+  width:100%; padding:11px;
+  background:transparent; border:1px solid var(--sep);
+  border-radius:10px; color:var(--text-tertiary);
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:0.85rem;
+  cursor:pointer; transition:all var(--ease);
+}
+#variants-reset-btn:active { opacity:0.5; }
+
+/* Long press visual feedback on chord tokens */
+.chord-token, .inline-chord {
+  -webkit-user-select:none; user-select:none;
+}
+.chord-token.pressing, .inline-chord.pressing {
+  background:rgba(48,209,88,0.25) !important;
+  border-radius:3px;
+}
+
+/* Override badge on chord tokens */
+.chord-token[data-overridden]::after {
+  content: '~';
+  font-size:0.6em;
+  vertical-align:super;
+  opacity:0.7;
+  color:var(--ui-active);
+}
+</style>
 <body>
 
 <!-- HEADER -->
@@ -942,6 +1280,79 @@ body.show-mode-paused .line-lyric .chord-token  { cursor:pointer; color:var(--ch
   <div id="chord-grid-body"></div>
 </div>
 
+
+<!-- CHORD VARIANTS SHEET -->
+<div id="variants-overlay" onclick="if(event.target===this)closeVariants()">
+  <div id="variants-sheet">
+    <div id="variants-sheet-header">
+      <div id="variants-sheet-title">AM</div>
+      <button id="variants-sheet-close" onclick="closeVariants()">✕</button>
+    </div>
+    <div id="variants-global-row">
+      <div>
+        <div id="variants-global-label">MODO GLOBAL</div>
+        <div id="variants-global-hint">Aplica a todos los acordes sin override</div>
+      </div>
+      <div id="variants-mode-pills">
+        <button class="vmode-pill active" onclick="setGlobalVariantMode('standard',this)" data-mode="standard">NORMAL</button>
+        <button class="vmode-pill" onclick="setGlobalVariantMode('easy',this)" data-mode="easy">FÁCIL</button>
+        <button class="vmode-pill" onclick="setGlobalVariantMode('jazz',this)" data-mode="jazz">JAZZ</button>
+      </div>
+    </div>
+    <div id="variants-list"></div>
+    <div id="variants-reset-row">
+      <button id="variants-reset-btn" onclick="resetChordOverride()">↺ USAR VERSIÓN ORIGINAL DE ESTE ACORDE</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOWLIST MODAL -->
+<div id="showlist-overlay" onclick="if(event.target===this)closeShowList()">
+  <div id="showlist-modal">
+    <div id="showlist-header">
+      <h2>🎪 SHOW LISTS</h2>
+      <button id="showlist-close" onclick="closeShowList()">✕</button>
+    </div>
+    <div id="showlist-tabs">
+      <button class="sl-tab active" onclick="switchSLTab('manage',this)">MIS SHOWS</button>
+      <button class="sl-tab" onclick="switchSLTab('create',this)">+ NUEVA LISTA</button>
+    </div>
+    <div id="showlist-body">
+      <div id="sl-manage-panel" class="visible">
+        <div id="sl-manage-list"></div>
+      </div>
+      <div id="sl-create-panel">
+        <div style="padding:0 16px">
+          <input type="text" id="sl-setlist-name" placeholder="NOMBRE DEL SHOW...">
+        </div>
+        <div id="sl-song-picker-wrap">
+          <div class="sl-picker-label">ELEGÍ LAS CANCIONES (EN ORDEN)</div>
+          <div id="sl-song-picker"></div>
+        </div>
+      </div>
+    </div>
+    <div id="sl-create-footer" style="display:none">
+      <button class="sl-footer-btn cancel" onclick="switchSLTab('manage',document.querySelectorAll('.sl-tab')[0])">CANCELAR</button>
+      <button class="sl-footer-btn save" onclick="saveShowList()">💾 GUARDAR SHOW</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOWLIST PLAYBACK BAR -->
+<div id="showlist-bar">
+  <div id="showlist-bar-top">
+    <span id="showlist-bar-title">🎪 SHOW</span>
+    <span id="showlist-bar-song">—</span>
+    <span id="showlist-bar-counter">1/1</span>
+  </div>
+  <div id="showlist-progress"></div>
+  <div id="showlist-bar-btns">
+    <button class="slbar-btn" onclick="showListPrev()">◀ ANTERIOR</button>
+    <button class="slbar-btn next" onclick="showListNext()">SIGUIENTE ▶</button>
+    <button class="slbar-btn end" onclick="endShowList()">■ TERMINAR</button>
+  </div>
+</div>
+
 <!-- SIDEBAR -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div id="sidebar">
@@ -949,10 +1360,12 @@ body.show-mode-paused .line-lyric .chord-token  { cursor:pointer; color:var(--ch
     <h2>MIS CANCIONES</h2>
     <button id="close-sidebar" onclick="closeSidebar()">✕</button>
   </div>
+  <button id="fav-filter-btn" onclick="toggleFavFilter()">⭐ SOLO FAVORITAS</button>
   <div id="song-list"></div>
   <div id="custom-chord-list"></div>
   <button id="custom-chord-btn" onclick="openCustomChordEditor(null)">+ ACORDE PERSONALIZADO</button>
   <button id="sidebar-add-btn" onclick="openEditor(null)">+ NUEVA CANCIÓN</button>
+  <button onclick="closeSidebar();openShowList()" style="margin:0 10px 8px;padding:11px;background:rgba(48,209,88,0.08);border:1px solid var(--chord-color);border-radius:8px;color:var(--chord-color);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:0.85rem;cursor:pointer;text-align:center;">🎪 SHOW LISTS</button>
   <button onclick="openCifraImport()" style="margin:0 10px 8px;padding:11px;background:rgba(78,205,196,0.06);border:1px solid var(--chord-color);border-radius:8px;color:var(--chord-color);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:0.85rem;cursor:pointer;text-align:center;">🔗 IMPORTAR DE CIFRA CLUB</button>
   <div style="display:flex;gap:8px;margin:0 10px 8px;">
     <button onclick="exportSongs()" style="flex:1;padding:11px;background:rgba(78,205,196,0.06);border:1px solid var(--chord-color);border-radius:8px;color:var(--chord-color);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:0.85rem;cursor:pointer;">⬆ EXPORTAR</button>
@@ -1379,6 +1792,20 @@ let editingChordName = null;
 let studyMode = false;
 let lyricsMode = false;
 
+// Favorites
+let favFilter = false;
+
+// Variants
+let songOverrides = JSON.parse(localStorage.getItem('sp-overrides') || '{}');
+let globalVariantMode = localStorage.getItem('sp-varmode') || 'standard';
+let variantsCurrentChord = null;
+
+// ShowList
+let showLists = JSON.parse(localStorage.getItem('sp-showlists') || '[]');
+let activeShowList = null;
+let slPickerSelected = [];
+let slEditingIndex = null;
+
 //  SCROLL + PLAY
 
 let scrollY = 0;
@@ -1563,7 +1990,10 @@ function openChordGrid() {
   unique.forEach(chordName => {
     const item = document.createElement('div');
     item.className = 'grid-chord-item';
-    const data = getChordData(chordName);
+    // Use effective variant for grid display
+    const origForGrid = transposeChordName(chordName, -transposeSteps);
+    const effForGrid = transposeChordName(getEffectiveChordName(origForGrid), transposeSteps);
+    const data = getChordData(effForGrid) || getChordData(chordName);
     const svgWrap = document.createElement('div');
     if (data) {
       svgWrap.innerHTML = buildChordSVG(data, 'medium');
@@ -1575,10 +2005,10 @@ function openChordGrid() {
     }
     const name = document.createElement('div');
     name.className = 'grid-chord-name';
-    name.textContent = chordName;
+    name.textContent = effForGrid + (effForGrid !== chordName ? ' (' + chordName + ')' : '');
     item.appendChild(svgWrap);
     item.appendChild(name);
-    item.addEventListener('click', () => showChordPopup(chordName));
+    item.addEventListener('click', () => showChordPopup(effForGrid));
     body.appendChild(item);
   });
 
@@ -1598,11 +2028,13 @@ function buildRail() {
 
   songChords.forEach((sc, i) => {
     const transposedName = getTransposedChord(sc.chord);
+    // Apply effective variant
+    const effName = transposeChordName(getEffectiveChordName(sc.chord), transposeSteps);
     const item = document.createElement('div');
     item.className = 'rail-chord-item';
     item.dataset.idx = i;
 
-    const data = getChordData(transposedName);
+    const data = getChordData(effName) || getChordData(transposedName);
     const svgWrap = document.createElement('div');
     if (data) {
       svgWrap.innerHTML = buildChordSVG(data, 'small');
@@ -1615,11 +2047,11 @@ function buildRail() {
 
     const name = document.createElement('div');
     name.className = 'rail-chord-name';
-    name.textContent = transposedName;
+    name.textContent = effName;
 
     item.appendChild(svgWrap);
     item.appendChild(name);
-    item.addEventListener('click', () => showChordPopup(transposedName));
+    item.addEventListener('click', () => showChordPopup(effName));
     rail.appendChild(item);
   });
 }
@@ -1662,6 +2094,23 @@ function showChordPopup(chordName) {
     if (svgEl) svgEl.style.color = 'var(--chord-color)';
   } else {
     svgWrap.innerHTML = '<div style="color:#555;font-size:0.8rem;padding:10px;text-align:center">Sin diagrama<br>en la base de datos</div>';
+  }
+  // Show variants hint if available
+  const orig = transposeChordName(chordName, -transposeSteps);
+  const closeBtn = document.getElementById('chord-popup-close');
+  let varBtn = document.getElementById('chord-popup-var-btn');
+  if (!varBtn) {
+    varBtn = document.createElement('button');
+    varBtn.id = 'chord-popup-var-btn';
+    varBtn.style.cssText = 'margin-top:6px;padding:8px 16px;background:rgba(48,209,88,0.1);border:1px solid rgba(48,209,88,0.3);border-radius:8px;color:var(--chord-color);font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:0.8rem;cursor:pointer;width:100%;';
+    closeBtn.parentNode.insertBefore(varBtn, closeBtn);
+  }
+  if (hasVariants(orig)) {
+    varBtn.textContent = '✦ VER VARIANTES DE ' + orig.toUpperCase();
+    varBtn.style.display = '';
+    varBtn.onclick = () => { closeChordPopup(); openVariants(chordName); };
+  } else {
+    varBtn.style.display = 'none';
   }
   document.getElementById('chord-popup-overlay').classList.add('open');
 }
@@ -1784,16 +2233,50 @@ function rerenderLyrics() {
       const chords = extractChordsFromChordLine(block.text);
       chords.forEach(ch => songChords.push({ chord: ch, lineIndex: lyricLineIdx }));
       // Render chord line with clickable spans per chord
+      // Render with effective variants
       div.innerHTML = transposedLine.replace(
         /[A-G][b#]?(m(?:aj)?7?|maj7?|dim|aug|sus[24]?|add9?|[5679]|11|13|m7b5|7sus4)?(?:[b#](?:5|9))?/g,
-        match => `<span class="chord-token" onclick="showChordPopup('${match}')">${match}</span>`
+        function(match) {
+          var orig = transposeChordName(match, -transposeSteps);
+          var eff = getEffectiveChordName(orig);
+          var effT = transposeChordName(eff, transposeSteps);
+          var overAttr = isOverridden(orig) ? ' data-overridden="1"' : '';
+          var display = (effT !== match) ? '<s style="opacity:.35;font-size:.8em">' + match + '</s> ' + effT : match;
+          return '<span class="chord-token" data-orig="' + orig + '"' + overAttr + '>' + display + '</span>';
+        }
       );
+      // Attach long-press to each chord token for variants
+      requestAnimationFrame(() => {
+        div.querySelectorAll('.chord-token').forEach(el => {
+          const orig = el.dataset.orig;
+          const transposed = transposeChordName(orig, transposeSteps);
+          el.onclick = () => showChordPopup(transposeChordName(getEffectiveChordName(orig), transposeSteps));
+          if (hasVariants(orig)) attachLongPress(el, transposed);
+        });
+      });
       currentY += fontSize * 1.5 * 0.82;
     } else {
       div.className = 'line-lyric';
       const activeFontSize = lyricsMode ? Math.max(fontSize, 32) : fontSize;
       div.style.fontSize = activeFontSize + 'px';
-      div.innerHTML = parseInlineChords(block.text, transposeSteps);
+      // Inline chords with variant support
+      div.innerHTML = block.text.replace(/\[([^\]]+)\]/g, (_, chord) => {
+        const transposed = transposeChordName(chord, transposeSteps);
+        const orig = chord;
+        const eff = getEffectiveChordName(orig);
+        const effT = transposeChordName(eff, transposeSteps);
+        const overAttr = isOverridden(orig) ? ' data-overridden="1"' : '';
+        const display = (effT !== transposed) ? '<s style="opacity:.35;font-size:.8em">' + transposed + '</s> ' + effT : transposed;
+        return '<span class="inline-chord" data-orig="' + orig + '"' + overAttr + '>' + display + '</span>';
+      });
+      requestAnimationFrame(() => {
+        div.querySelectorAll('.inline-chord').forEach(el => {
+          const orig = el.dataset.orig;
+          const transposed = transposeChordName(orig, transposeSteps);
+          el.onclick = () => showChordPopup(transposeChordName(getEffectiveChordName(orig), transposeSteps));
+          if (hasVariants(orig)) attachLongPress(el, transposed);
+        });
+      });
       // inline chords
       const re = /\[([^\]]+)\]/g;
       let m;
@@ -1882,15 +2365,17 @@ function setTheme(name, pill) {
 function renderSongList() {
   const list = document.getElementById('song-list');
   list.innerHTML = '';
-  if (!songs.length) {
-    list.innerHTML = '<div style="color:var(--text-tertiary);padding:20px;text-align:center;font-size:0.85rem">No hay canciones todavía</div>';
+  const filtered = songs.map((s, i) => ({ s, i })).filter(({ s }) => !favFilter || s.fav);
+  if (!filtered.length) {
+    list.innerHTML = '<div style="color:var(--text-tertiary);padding:20px;text-align:center;font-size:0.85rem">' + (favFilter ? 'No hay canciones favoritas todavía. Tocá ⭐ en una canción.' : 'No hay canciones todavía') + '</div>';
     return;
   }
-  songs.forEach((s, i) => {
+  filtered.forEach(({ s, i }) => {
     const item = document.createElement('div');
     item.className = 'song-item' + (i === currentSongIndex ? ' active' : '');
     item.innerHTML = `<div class="song-item-title">${s.name}</div>
       <div class="song-actions">
+        <button class="fav-btn ${s.fav ? 'active' : ''}" onclick="toggleFavSong(${i},event)" title="${s.fav ? 'Quitar favorito' : 'Marcar favorita'}">${s.fav ? '⭐' : '☆'}</button>
         <button onclick="event.stopPropagation();editSong(${i})">✏️</button>
         <button onclick="event.stopPropagation();deleteSong(${i})">🗑️</button>
       </div>`;
@@ -2133,6 +2618,13 @@ function closeSidebar() {
   const idx = themeKeys.indexOf(savedTheme);
   const pills = document.querySelectorAll('.theme-pill');
   setTheme(savedTheme, idx >= 0 ? pills[idx] : pills[2]);
+
+  // Init global variant mode pills
+  const savedVarMode = localStorage.getItem('sp-varmode') || 'standard';
+  globalVariantMode = savedVarMode;
+  document.querySelectorAll('.vmode-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.mode === savedVarMode);
+  });
 
   const lastSong = localStorage.getItem('sp-last-song');
   if (lastSong !== null && songs[parseInt(lastSong)]) {
@@ -2598,6 +3090,454 @@ function saveCifraImport() {
 window.addEventListener('beforeunload', () => {
   if (currentSongIndex >= 0) localStorage.setItem('sp-last-song', currentSongIndex);
 });
+
+
+
+// ─────────────────────────────────────────────
+//  CHORD VARIANTS SYSTEM
+// ─────────────────────────────────────────────
+
+// songOverrides[songIndex][originalChordName] = variantKey
+// variantKey = 'original' | index into CHORD_VARIANTS[chord]
+function saveSongOverrides() { localStorage.setItem('sp-overrides', JSON.stringify(songOverrides)); }
+function saveGlobalVariantMode(m) { globalVariantMode = m; localStorage.setItem('sp-varmode', m); }
+
+// ── Variant database ──
+// Each entry: { label, tag, fingers, barre }
+// Tags: easy | standard | jazz | barre | folk | rock
+const CHORD_VARIANTS = {
+  'C': [
+    { label:'C',     tag:'standard', fingers:[0,1,0,2,3,-1], barre:null },
+    { label:'Cadd9', tag:'folk',     fingers:[0,3,0,2,3,-1], barre:null },
+    { label:'C/E',   tag:'easy',     fingers:[0,1,0,2,0,-1], barre:null },
+    { label:'Cmaj7', tag:'jazz',     fingers:[0,0,0,2,3,-1], barre:null },
+  ],
+  'D': [
+    { label:'D',     tag:'standard', fingers:[2,3,2,0,-1,-1], barre:null },
+    { label:'Dsus2', tag:'folk',     fingers:[0,3,2,0,-1,-1], barre:null },
+    { label:'Dsus4', tag:'folk',     fingers:[3,3,2,0,-1,-1], barre:null },
+    { label:'Dmaj7', tag:'jazz',     fingers:[2,2,2,0,-1,-1], barre:null },
+  ],
+  'E': [
+    { label:'E',     tag:'standard', fingers:[0,0,1,2,2,0], barre:null },
+    { label:'Em',    tag:'easy',     fingers:[0,0,0,2,2,0], barre:null },
+    { label:'E7',    tag:'jazz',     fingers:[0,0,1,0,2,0], barre:null },
+    { label:'Emaj7', tag:'jazz',     fingers:[0,1,1,1,2,0], barre:null },
+  ],
+  'Em': [
+    { label:'Em',    tag:'standard', fingers:[0,0,0,2,2,0], barre:null },
+    { label:'Em7',   tag:'easy',     fingers:[0,0,0,0,2,0], barre:null },
+    { label:'Em9',   tag:'jazz',     fingers:[0,0,0,2,0,0], barre:null },
+  ],
+  'Am': [
+    { label:'Am',    tag:'standard', fingers:[0,1,2,2,0,-1], barre:null },
+    { label:'Am7',   tag:'easy',     fingers:[0,1,0,2,0,-1], barre:null },
+    { label:'Asus2', tag:'folk',     fingers:[0,2,2,0,0,-1], barre:null },
+    { label:'Am9',   tag:'jazz',     fingers:[0,3,0,2,0,-1], barre:null },
+  ],
+  'G': [
+    { label:'G',     tag:'standard', fingers:[3,0,0,0,2,3], barre:null },
+    { label:'G5',    tag:'rock',     fingers:[-1,-1,5,5,3,-1], barre:null },
+    { label:'Gsus4', tag:'folk',     fingers:[3,1,0,0,3,3], barre:null },
+    { label:'Gmaj7', tag:'jazz',     fingers:[2,0,0,0,2,3], barre:null },
+  ],
+  'A': [
+    { label:'A',     tag:'standard', fingers:[0,2,2,2,0,-1], barre:null },
+    { label:'Asus2', tag:'easy',     fingers:[0,2,2,0,0,-1], barre:null },
+    { label:'Asus4', tag:'folk',     fingers:[0,3,2,2,0,-1], barre:null },
+    { label:'A7',    tag:'jazz',     fingers:[0,2,0,2,0,-1], barre:null },
+  ],
+  'F': [
+    { label:'F',     tag:'barre',    fingers:[1,1,2,3,3,1], barre:{fret:1,from:0,to:5} },
+    { label:'Fmaj7', tag:'easy',     fingers:[0,1,2,3,3,1], barre:null },
+    { label:'F/C',   tag:'easy',     fingers:[1,1,2,3,3,-1], barre:null },
+    { label:'Faug',  tag:'jazz',     fingers:[2,1,1,2,3,2], barre:null },
+  ],
+  'Fm': [
+    { label:'Fm',    tag:'barre',    fingers:[1,1,1,3,3,1], barre:{fret:1,from:0,to:5} },
+    { label:'Fm7',   tag:'jazz',     fingers:[1,1,1,1,3,1], barre:{fret:1,from:0,to:5} },
+  ],
+  'B': [
+    { label:'B',     tag:'barre',    fingers:[2,2,4,4,4,2], barre:{fret:2,from:0,to:5} },
+    { label:'Bm',    tag:'easy',     fingers:[2,3,4,4,2,2], barre:{fret:2,from:0,to:5} },
+    { label:'B7',    tag:'jazz',     fingers:[0,2,1,2,2,2], barre:null },
+  ],
+  'Bm': [
+    { label:'Bm',    tag:'standard', fingers:[2,3,4,4,2,2], barre:{fret:2,from:0,to:5} },
+    { label:'Bm7',   tag:'easy',     fingers:[2,3,2,4,2,2], barre:{fret:2,from:0,to:5} },
+    { label:'Bm/D',  tag:'folk',     fingers:[2,3,4,0,2,2], barre:null },
+  ],
+  'Dm': [
+    { label:'Dm',    tag:'standard', fingers:[1,3,2,0,-1,-1], barre:null },
+    { label:'Dm7',   tag:'easy',     fingers:[1,1,2,0,-1,-1], barre:null },
+    { label:'Dsus2', tag:'folk',     fingers:[0,3,2,0,-1,-1], barre:null },
+  ],
+  'C#': [
+    { label:'C#',    tag:'barre',    fingers:[1,1,3,3,3,1], barre:{fret:1,from:0,to:5} },
+    { label:'C#7',   tag:'jazz',     fingers:[1,1,2,1,3,1], barre:{fret:1,from:0,to:5} },
+  ],
+  'Bb': [
+    { label:'Bb',    tag:'barre',    fingers:[1,1,3,3,3,1], barre:{fret:1,from:0,to:5} },
+    { label:'Bb/D',  tag:'easy',     fingers:[3,1,3,3,3,-1], barre:null },
+    { label:'Bb7',   tag:'jazz',     fingers:[1,1,2,1,3,1], barre:{fret:1,from:0,to:5} },
+  ],
+  'F#m': [
+    { label:'F#m',   tag:'barre',    fingers:[2,2,2,4,4,2], barre:{fret:2,from:0,to:5} },
+    { label:'F#m7',  tag:'jazz',     fingers:[2,2,2,2,4,2], barre:{fret:2,from:0,to:5} },
+  ],
+  'G#m': [
+    { label:'G#m',   tag:'barre',    fingers:[4,4,4,6,6,4], barre:{fret:4,from:0,to:5} },
+    { label:'G#m7',  tag:'jazz',     fingers:[4,4,4,4,6,4], barre:{fret:4,from:0,to:5} },
+  ],
+};
+
+// Global mode: for each chord with variants, prefer 'easy', 'jazz', or 'standard' tag
+function getGlobalModeVariant(chordName) {
+  const vars = CHORD_VARIANTS[chordName];
+  if (!vars) return null;
+  if (globalVariantMode === 'standard') return vars[0]; // first = standard
+  const match = vars.find(v => v.tag === globalVariantMode);
+  return match || vars[0];
+}
+
+// Get effective chord data for rendering (respects overrides + global mode)
+function getEffectiveChordName(originalChord) {
+  if (currentSongIndex < 0) return originalChord;
+  const overrides = songOverrides[currentSongIndex] || {};
+  if (overrides[originalChord] === 'original') return originalChord;
+  if (overrides[originalChord] !== undefined) {
+    const idx = overrides[originalChord];
+    const vars = CHORD_VARIANTS[originalChord];
+    if (vars && vars[idx]) return vars[idx].label;
+  }
+  // Fall back to global mode
+  if (globalVariantMode !== 'standard') {
+    const gv = getGlobalModeVariant(originalChord);
+    if (gv && gv.label !== originalChord) return gv.label;
+  }
+  return originalChord;
+}
+
+function hasVariants(chordName) {
+  return !!(CHORD_VARIANTS[chordName] && CHORD_VARIANTS[chordName].length > 1);
+}
+
+function isOverridden(chordName) {
+  if (currentSongIndex < 0) return false;
+  const overrides = songOverrides[currentSongIndex] || {};
+  if (overrides[chordName] !== undefined && overrides[chordName] !== 'original') return true;
+  if (globalVariantMode !== 'standard') {
+    const gv = getGlobalModeVariant(chordName);
+    if (gv && gv.label !== chordName) return true;
+  }
+  return false;
+}
+
+// ── Variants sheet ──
+function openVariants(chordName) {
+  const base = parseChordName(chordName);
+  if (!base) return;
+  // Use the original chord name (strip transposition for lookup)
+  // We need to find what original chord maps to this transposed name
+  // So we reverse-transpose to find original
+  const originalChord = transposeChordName(chordName, -transposeSteps);
+  variantsCurrentChord = originalChord;
+
+  document.getElementById('variants-sheet-title').textContent = chordName.toUpperCase();
+  const overrides = songOverrides[currentSongIndex] || {};
+  const currentOverride = overrides[originalChord];
+
+  // Update global mode pills
+  document.querySelectorAll('.vmode-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.mode === globalVariantMode);
+  });
+
+  // Render variant cards
+  const list = document.getElementById('variants-list');
+  list.innerHTML = '';
+
+  const vars = CHORD_VARIANTS[originalChord];
+  if (!vars || vars.length <= 1) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-tertiary);font-family:-apple-system,sans-serif;font-size:0.85rem">No hay variantes registradas para este acorde.<br>Podés crear una versión personalizada con el editor de acordes.</div>';
+    document.getElementById('variants-overlay').classList.add('open');
+    return;
+  }
+
+  vars.forEach((v, i) => {
+    const card = document.createElement('div');
+    const isSelected = currentOverride === i || (currentOverride === undefined && i === 0 && globalVariantMode === 'standard')
+      || (currentOverride === undefined && globalVariantMode !== 'standard' && getGlobalModeVariant(originalChord) === v);
+    card.className = 'variant-card' + (isSelected ? ' selected' : '');
+
+    const chordData = getChordData(v.label) || { fingers: v.fingers, barre: v.barre };
+    const svg = buildChordSVG(chordData, 'small');
+
+    card.innerHTML = `
+      <div class="variant-card-svg">${svg}</div>
+      <div class="variant-card-info">
+        <div class="variant-card-name">${v.label}</div>
+        <span class="variant-card-tag tag-${v.tag}">${tagLabel(v.tag)}</span>
+      </div>
+      <div class="variant-card-check">✓</div>
+    `;
+    card.querySelector('.variant-card-svg svg').style.color = 'var(--chord-color)';
+    card.addEventListener('click', () => selectVariant(i));
+    list.appendChild(card);
+  });
+
+  document.getElementById('variants-overlay').classList.add('open');
+}
+
+function tagLabel(tag) {
+  const map = { easy:'fácil', standard:'estándar', jazz:'jazz', barre:'cejilla', folk:'folk', rock:'rock' };
+  return map[tag] || tag;
+}
+
+function selectVariant(idx) {
+  if (!variantsCurrentChord || currentSongIndex < 0) return;
+  if (!songOverrides[currentSongIndex]) songOverrides[currentSongIndex] = {};
+  songOverrides[currentSongIndex][variantsCurrentChord] = idx;
+  saveSongOverrides();
+  closeVariants();
+  rerenderLyrics();
+}
+
+function resetChordOverride() {
+  if (!variantsCurrentChord || currentSongIndex < 0) return;
+  if (songOverrides[currentSongIndex]) {
+    delete songOverrides[currentSongIndex][variantsCurrentChord];
+    saveSongOverrides();
+  }
+  closeVariants();
+  rerenderLyrics();
+}
+
+function setGlobalVariantMode(mode, btn) {
+  saveGlobalVariantMode(mode);
+  document.querySelectorAll('.vmode-pill').forEach(p => p.classList.toggle('active', p.dataset.mode === mode));
+  if (currentSongIndex >= 0) rerenderLyrics();
+}
+
+function closeVariants() {
+  document.getElementById('variants-overlay').classList.remove('open');
+  variantsCurrentChord = null;
+}
+
+// ── Long press detection ──
+let lpTimer = null;
+let lpTarget = null;
+
+function attachLongPress(el, chordName) {
+  el.addEventListener('pointerdown', (e) => {
+    lpTarget = el;
+    el.classList.add('pressing');
+    lpTimer = setTimeout(() => {
+      el.classList.remove('pressing');
+      lpTimer = null;
+      openVariants(chordName);
+    }, 500);
+  });
+  const cancel = () => {
+    if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+    el.classList.remove('pressing');
+  };
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointerleave', cancel);
+  el.addEventListener('pointermove', cancel);
+}
+
+
+// ─────────────────────────────────────────────
+//  FAVORITES
+// ─────────────────────────────────────────────
+
+function toggleFavSong(i, e) {
+  e.stopPropagation();
+  songs[i].fav = !songs[i].fav;
+  saveSongs();
+  renderSongList();
+}
+
+function toggleFavFilter() {
+  favFilter = !favFilter;
+  const btn = document.getElementById('fav-filter-btn');
+  btn.classList.toggle('active', favFilter);
+  btn.textContent = favFilter ? '⭐ TODAS LAS CANCIONES' : '⭐ SOLO FAVORITAS';
+  renderSongList();
+}
+
+// ─────────────────────────────────────────────
+//  SHOW LIST
+// ─────────────────────────────────────────────
+
+function saveShowLists() { localStorage.setItem('sp-showlists', JSON.stringify(showLists)); }
+
+function openShowList() {
+  slEditingIndex = null;
+  switchSLTab('manage', document.querySelectorAll('.sl-tab')[0]);
+  renderSLManage();
+  document.getElementById('showlist-overlay').classList.add('open');
+}
+function closeShowList() { document.getElementById('showlist-overlay').classList.remove('open'); }
+
+function switchSLTab(tab, btn) {
+  document.querySelectorAll('.sl-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sl-manage-panel').classList.toggle('visible', tab === 'manage');
+  document.getElementById('sl-create-panel').classList.toggle('visible', tab === 'create');
+  document.getElementById('sl-create-footer').style.display = tab === 'create' ? 'flex' : 'none';
+  if (tab === 'create') {
+    if (slEditingIndex === null) {
+      document.getElementById('sl-setlist-name').value = '';
+      slPickerSelected = [];
+    }
+    renderSLPicker();
+  } else {
+    renderSLManage();
+  }
+}
+
+function renderSLPicker() {
+  const wrap = document.getElementById('sl-song-picker');
+  wrap.innerHTML = '';
+  if (!songs.length) {
+    wrap.innerHTML = '<div class="sl-empty-msg">No hay canciones todav\u00eda.<br>Agrega algunas primero.</div>';
+    return;
+  }
+  songs.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'sl-picker-item' + (slPickerSelected.includes(i) ? ' selected' : '');
+    const orderNum = slPickerSelected.indexOf(i) + 1;
+    div.innerHTML = '<div class="sl-picker-check">' + (slPickerSelected.includes(i) ? orderNum : '') + '</div>'
+      + '<div class="sl-picker-name">' + s.name + '</div>'
+      + (s.fav ? '<span class="sl-picker-fav">\u2b50</span>' : '');
+    div.addEventListener('click', () => {
+      const idx = slPickerSelected.indexOf(i);
+      if (idx === -1) slPickerSelected.push(i);
+      else slPickerSelected.splice(idx, 1);
+      renderSLPicker();
+    });
+    wrap.appendChild(div);
+  });
+}
+
+function renderSLManage() {
+  const wrap = document.getElementById('sl-manage-list');
+  wrap.innerHTML = '';
+  if (!showLists.length) {
+    wrap.innerHTML = '<div class="sl-empty-msg">No ten\u00e9s shows creados todav\u00eda.<br>Us\u00e1 &ldquo;+ NUEVA LISTA&rdquo; para armar tu primer set.</div>';
+    return;
+  }
+  showLists.forEach((sl, i) => {
+    const validSongs = sl.songIndexes.filter(si => songs[si]);
+    const div = document.createElement('div');
+    div.className = 'sl-list-item';
+    const names = validSongs.map(si => songs[si] ? songs[si].name : '').filter(Boolean);
+    div.innerHTML = '<div class="sl-list-icon">\uD83C\uDFAA</div>'
+      + '<div class="sl-list-info">'
+      + '<div class="sl-list-name">' + sl.name + '</div>'
+      + '<div class="sl-list-count">' + validSongs.length + ' canci\u00f3n' + (validSongs.length !== 1 ? 'es' : '') + ' \u00b7 ' + names.slice(0,3).join(', ') + (names.length > 3 ? '...' : '') + '</div>'
+      + '</div>'
+      + '<div class="sl-list-actions">'
+      + '<button onclick="event.stopPropagation();editShowList(' + i + ')">\u270f\ufe0f</button>'
+      + '<button onclick="event.stopPropagation();deleteShowList(' + i + ')">\uD83D\uDDD1\uFE0F</button>'
+      + '</div>';
+    div.querySelector('.sl-list-info').addEventListener('click', () => {
+      startShowList(i);
+      closeShowList();
+    });
+    wrap.appendChild(div);
+  });
+}
+
+function saveShowList() {
+  const name = document.getElementById('sl-setlist-name').value.trim();
+  if (!name) { alert('Dale un nombre al show \uD83C\uDFAA'); return; }
+  if (!slPickerSelected.length) { alert('Eleg\u00ed al menos una canci\u00f3n'); return; }
+  const entry = { name, songIndexes: [...slPickerSelected] };
+  if (slEditingIndex !== null) showLists[slEditingIndex] = entry;
+  else showLists.push(entry);
+  saveShowLists();
+  slEditingIndex = null;
+  slPickerSelected = [];
+  switchSLTab('manage', document.querySelectorAll('.sl-tab')[0]);
+}
+
+function editShowList(i) {
+  slEditingIndex = i;
+  const sl = showLists[i];
+  document.getElementById('sl-setlist-name').value = sl.name;
+  slPickerSelected = [...sl.songIndexes];
+  switchSLTab('create', document.querySelectorAll('.sl-tab')[1]);
+}
+
+function deleteShowList(i) {
+  if (!confirm('Borrar el show "' + showLists[i].name + '"?')) return;
+  showLists.splice(i, 1);
+  saveShowLists();
+  if (activeShowList && activeShowList.listIndex === i) endShowList();
+  renderSLManage();
+}
+
+function startShowList(listIndex) {
+  const sl = showLists[listIndex];
+  const validIndexes = sl.songIndexes.filter(si => songs[si]);
+  if (!validIndexes.length) { alert('No hay canciones v\u00e1lidas en este show.'); return; }
+  activeShowList = { listIndex, songIndexes: validIndexes, currentPos: 0, name: sl.name };
+  goToShowListSong(0);
+  updateShowListBar();
+}
+
+function goToShowListSong(pos) {
+  if (!activeShowList) return;
+  activeShowList.currentPos = pos;
+  const songIdx = activeShowList.songIndexes[pos];
+  transposeSteps = 0;
+  updateTransposeDisplay();
+  renderSong(songIdx);
+  updateShowListBar();
+}
+
+function showListNext() {
+  if (!activeShowList) return;
+  if (activeShowList.currentPos < activeShowList.songIndexes.length - 1) {
+    goToShowListSong(activeShowList.currentPos + 1);
+  } else {
+    if (confirm('\u00a1Llegaste al final del show! \uD83C\uDF89 \u00bfTerminar?')) endShowList();
+  }
+}
+
+function showListPrev() {
+  if (!activeShowList) return;
+  if (activeShowList.currentPos > 0) goToShowListSong(activeShowList.currentPos - 1);
+}
+
+function endShowList() {
+  activeShowList = null;
+  document.getElementById('showlist-bar').classList.remove('visible');
+}
+
+function updateShowListBar() {
+  if (!activeShowList) return;
+  const { songIndexes, currentPos, name } = activeShowList;
+  const bar = document.getElementById('showlist-bar');
+  bar.classList.add('visible');
+  document.getElementById('showlist-bar-title').textContent = '\uD83C\uDFAA ' + name.toUpperCase();
+  document.getElementById('showlist-bar-song').textContent = songs[songIndexes[currentPos]] ? songs[songIndexes[currentPos]].name : '\u2014';
+  document.getElementById('showlist-bar-counter').textContent = (currentPos + 1) + '/' + songIndexes.length;
+  const prog = document.getElementById('showlist-progress');
+  prog.innerHTML = '';
+  songIndexes.forEach(function(_, i) {
+    const dot = document.createElement('div');
+    dot.className = 'sl-progress-dot' + (i < currentPos ? ' done' : i === currentPos ? ' current' : '');
+    prog.appendChild(dot);
+  });
+  const prevBtn = document.querySelector('.slbar-btn:first-child');
+  if (prevBtn) prevBtn.style.opacity = currentPos === 0 ? '0.3' : '1';
+  const nextBtn = document.querySelector('.slbar-btn.next');
+  if (nextBtn) nextBtn.textContent = currentPos === songIndexes.length - 1 ? '\uD83C\uDF89 FIN' : 'SIGUIENTE \u25ba';
+}
+
 
 </script>
 </body>
