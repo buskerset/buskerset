@@ -19,9 +19,7 @@
   --bg:              #000000;
   --bg2:             #1c1c1e;
   --bg3:             #2c2c2e;
-  --bg4:             #3a3a3c;
   --sep:             rgba(84,84,88,0.65);
-  --sep-opaque:      #38383a;
   --text-primary:    #ffffff;
   --text-secondary:  rgba(235,235,245,0.6);
   --text-tertiary:   rgba(235,235,245,0.3);
@@ -32,7 +30,6 @@
   --chord-active:    #ff9500;
   --chord-next:      #ffd60a;
   --chord-inactive:  rgba(48,209,88,0.28);
-  --fill1:           rgba(120,120,128,0.36);
   --fill2:           rgba(120,120,128,0.24);
   --fill3:           rgba(120,120,128,0.16);
   --fill4:           rgba(116,116,128,0.08);
@@ -52,7 +49,6 @@
   --r-xs:  8px;
   --r-sm:  12px;
   --r-md:  16px;
-  --r-lg:  20px;
   --r-xl:  28px;
   --r-pill:99px;
   --ease: 0.22s cubic-bezier(.4,0,.2,1);
@@ -436,7 +432,7 @@ body {
 body.lyrics-mode .line-chords   { display:none !important; }
 body.lyrics-mode .inline-chord  { display:none !important; }
 body.lyrics-mode .empty-line    { height:0.5em !important; }
-body.lyrics-mode .line-lyric    { font-size:1.25em !important; line-height:3.4 !important; }
+body.lyrics-mode .line-lyric    { line-height:3.4 !important; }
 body.lyrics-mode #transpose-row { display:none !important; }
 body.lyrics-mode #chord-rail-wrap { display:none !important; }
 body.lyrics-mode #playing-panel { justify-content:center; gap:24px; }
@@ -1103,7 +1099,6 @@ body.show-mode-paused .line-lyric .chord-token  { cursor:pointer; color:var(--ch
 </div>
 <script>
 
-
 //  CHORD DATABASE
 
 const CHORD_DB = {
@@ -1374,6 +1369,8 @@ function getChordData(chordName) {
 
 //  DATA
 
+const PLACEHOLDER_HTML = '<div id="placeholder"><div class="big">🎸</div><div>BUSKERSET</div><div style="font-size:0.8rem;margin-top:4px">Abrí el menú ☰ y cargá tu primera canción</div><div class="credit">diseñado por (H)ache</div></div>';
+
 let songs = JSON.parse(localStorage.getItem('sp-songs') || '[]');
 let customChords = JSON.parse(localStorage.getItem('sp-custom-chords') || '{}');
 let currentSongIndex = -1;
@@ -1530,16 +1527,17 @@ function setLyricsMode(on) {
     btn.className = 'hdr-btn mode-lyrics active-mode';
     document.body.classList.add('lyrics-mode');
     document.body.classList.remove('show-mode-paused');
-    // Lyrics mode uses auto-scroll too (same show controls)
     setupPanel.style.display = studyMode ? 'none' : '';
     area.classList.remove('study-mode');
     scrollY = area.scrollTop;
     document.getElementById('lyrics-wrapper').style.transform = `translateY(${-scrollY}px)`;
+    // Font size applied by rerenderLyrics via activeFontSize
   } else {
     btn.textContent = '🎤 LETRA';
     btn.className = 'hdr-btn mode-lyrics';
     document.body.classList.remove('lyrics-mode');
     setupPanel.style.display = studyMode ? 'none' : '';
+    // Font size restored by rerenderLyrics
   }
   if (currentSongIndex >= 0) rerenderLyrics();
 }
@@ -1780,7 +1778,8 @@ function rerenderLyrics() {
       currentY += fontSize * 1.0;
     } else if (block.type === 'chord-line') {
       div.className = 'line-chords';
-      div.style.fontSize = (fontSize * 0.82) + 'px';
+      const activeFontSizeC = lyricsMode ? Math.max(fontSize, 32) : fontSize;
+      div.style.fontSize = (activeFontSizeC * 0.82) + 'px';
       const transposedLine = transposeChordLine(block.text, transposeSteps);
       const chords = extractChordsFromChordLine(block.text);
       chords.forEach(ch => songChords.push({ chord: ch, lineIndex: lyricLineIdx }));
@@ -1792,7 +1791,8 @@ function rerenderLyrics() {
       currentY += fontSize * 1.5 * 0.82;
     } else {
       div.className = 'line-lyric';
-      div.style.fontSize = fontSize + 'px';
+      const activeFontSize = lyricsMode ? Math.max(fontSize, 32) : fontSize;
+      div.style.fontSize = activeFontSize + 'px';
       div.innerHTML = parseInlineChords(block.text, transposeSteps);
       // inline chords
       const re = /\[([^\]]+)\]/g;
@@ -1838,8 +1838,9 @@ function setSpeedFromSlider(v) {
 
 function changeFontSize(delta) {
   fontSize = Math.min(52, Math.max(14, fontSize + delta));
-  document.querySelectorAll('.line-lyric').forEach(l => l.style.fontSize = fontSize + 'px');
-  document.querySelectorAll('.line-chords').forEach(l => l.style.fontSize = (fontSize * 0.82) + 'px');
+  const activeFontSize = lyricsMode ? Math.max(fontSize, 32) : fontSize;
+  document.querySelectorAll('.line-lyric').forEach(l => l.style.fontSize = activeFontSize + 'px');
+  document.querySelectorAll('.line-chords').forEach(l => l.style.fontSize = (activeFontSize * 0.82) + 'px');
   localStorage.setItem('sp-fontsize', fontSize);
 }
 
@@ -1851,9 +1852,9 @@ const themes = {
   // iOS Dark 2 — gris oscuro elevado, mismo acento
   'night-soft':   { bg:'#1c1c1e',text:'#ffffff',chord:'#30d158',uiBg:'#2c2c2e',border:'rgba(84,84,88,0.65)',uiText:'rgba(235,235,245,0.6)',uiActive:'#ff9500',btnBg:'rgba(120,120,128,0.16)',chordActive:'#ff9500',chordNext:'#ffd60a',chordInactive:'rgba(48,209,88,0.28)', panelBg:'#2c2c2e',panelBg2:'#3a3a3c',panelInputBg:'rgba(116,116,128,0.12)',panelText:'#ffffff',panelCancel:'rgba(120,120,128,0.2)',panelHint:'rgba(235,235,245,0.3)',panelItemHover:'rgba(120,120,128,0.12)' },
   // iOS Light — blanco puro, acento naranja
-  'day-light':    { bg:'#f2f2f7',text:'#000000',chord:'#248a3d',uiBg:'#ffffff',border:'rgba(60,60,67,0.18)',uiText:'rgba(60,60,67,0.6)',uiActive:'#ff9500',btnBg:'rgba(120,120,128,0.2)',chordActive:'#ff9500',chordNext:'#c93400',chordInactive:'rgba(36,138,61,0.35)', panelBg:'#ffffff',panelBg2:'#f2f2f7',panelInputBg:'rgba(120,120,128,0.12)',panelText:'#000000',panelCancel:'rgba(120,120,128,0.2)',panelHint:'rgba(60,60,67,0.3)',panelItemHover:'rgba(120,120,128,0.1)' },
+  'day-light':    { bg:'#f2f2f7',text:'#000000',chord:'#248a3d',uiBg:'#ffffff',border:'rgba(60,60,67,0.18)',uiText:'rgba(60,60,67,0.6)',uiActive:'#ff9500',btnBg:'rgba(120,120,128,0.2)',chordActive:'#ff9500',chordNext:'#c93400',chordInactive:'rgba(36,138,61,0.35)', panelBg:'#ffffff',panelBg2:'#f2f2f7',panelInputBg:'rgba(120,120,128,0.12)',panelText:'#000000',panelCancel:'rgba(120,120,128,0.2)',panelHint:'rgba(60,60,67,0.3)',panelItemHover:'rgba(120,120,128,0.1)', accentDim:'rgba(255,149,0,0.12)',accentBorder:'rgba(255,149,0,0.3)',fill3:'rgba(60,60,67,0.1)',fill4:'rgba(60,60,67,0.05)' },
   // iOS Warm — blanco cálido, acento naranja
-  'day-amber':    { bg:'#fff8f0',text:'#1a0a00',chord:'#248a3d',uiBg:'#ffffff',border:'rgba(80,50,20,0.15)',uiText:'rgba(80,50,20,0.5)',uiActive:'#ff6b00',btnBg:'rgba(140,100,60,0.14)',chordActive:'#ff6b00',chordNext:'#c93400',chordInactive:'rgba(36,138,61,0.3)', panelBg:'#ffffff',panelBg2:'#fff3e6',panelInputBg:'rgba(140,100,60,0.08)',panelText:'#1a0a00',panelCancel:'rgba(140,100,60,0.14)',panelHint:'rgba(80,50,20,0.3)',panelItemHover:'rgba(140,100,60,0.08)' },
+  'day-amber':    { bg:'#fff8f0',text:'#1a0a00',chord:'#248a3d',uiBg:'#ffffff',border:'rgba(80,50,20,0.15)',uiText:'rgba(80,50,20,0.5)',uiActive:'#ff6b00',btnBg:'rgba(140,100,60,0.14)',chordActive:'#ff6b00',chordNext:'#c93400',chordInactive:'rgba(36,138,61,0.3)', panelBg:'#ffffff',panelBg2:'#fff3e6',panelInputBg:'rgba(140,100,60,0.08)',panelText:'#1a0a00',panelCancel:'rgba(140,100,60,0.14)',panelHint:'rgba(80,50,20,0.3)',panelItemHover:'rgba(140,100,60,0.08)', accentDim:'rgba(255,107,0,0.1)',accentBorder:'rgba(255,107,0,0.28)',fill3:'rgba(80,50,20,0.1)',fill4:'rgba(80,50,20,0.05)' },
 };
 
 function setTheme(name, pill) {
@@ -1864,7 +1865,11 @@ function setTheme(name, pill) {
    ['--chord-inactive',t.chordInactive],['--panel-bg',t.panelBg],['--panel-bg2',t.panelBg2],
    ['--panel-input-bg',t.panelInputBg],['--panel-text',t.panelText],
    ['--panel-cancel-bg',t.panelCancel],['--panel-hint',t.panelHint],
-   ['--panel-item-hover',t.panelItemHover]
+   ['--panel-item-hover',t.panelItemHover],
+   ['--text-primary',t.text],['--text-secondary',t.uiText],['--text-tertiary',t.panelHint],
+   ['--accent',t.uiActive],['--accent-dim',t.accentDim||'rgba(255,149,0,0.18)'],
+   ['--accent-border',t.accentBorder||'rgba(255,149,0,0.35)'],
+   ['--fill3',t.fill3||t.btnBg],['--fill4',t.fill4||t.panelInputBg],['--sep',t.border]
   ].forEach(([k,v]) => r.setProperty(k,v));
   document.querySelectorAll('.theme-pill').forEach(p => p.classList.remove('active'));
   if (pill) pill.classList.add('active');
@@ -1878,7 +1883,7 @@ function renderSongList() {
   const list = document.getElementById('song-list');
   list.innerHTML = '';
   if (!songs.length) {
-    list.innerHTML = '<div style="color:#333;padding:20px;text-align:center;font-size:0.85rem;font-family:monospace">No hay canciones todavía</div>';
+    list.innerHTML = '<div style="color:var(--text-tertiary);padding:20px;text-align:center;font-size:0.85rem">No hay canciones todavía</div>';
     return;
   }
   songs.forEach((s, i) => {
@@ -1928,7 +1933,7 @@ function deleteSong(i) {
   songs.splice(i, 1);
   if (currentSongIndex === i) {
     currentSongIndex = -1;
-    document.getElementById('lyrics-wrapper').innerHTML = `<div id="placeholder"><div class="big">🎸</div><div>BUSKERSET</div><div style="font-size:0.8rem;margin-top:4px">Abrí el menú ☰ y cargá tu primera canción</div><div class="credit">diseñado por (H)ache</div></div>`;
+    document.getElementById('lyrics-wrapper').innerHTML = PLACEHOLDER_HTML;
     document.getElementById('song-title').textContent = 'BUSKERSET 🎸';
     document.getElementById('chord-rail').innerHTML = '';
   } else if (currentSongIndex > i) currentSongIndex--;
@@ -1978,11 +1983,13 @@ function updateCCPreview() {
   if (svg) svg.style.color = 'var(--chord-color)';
 }
 
+function saveCustomChords() { saveCustomChords(); }
+
 function saveCustomChord() {
   const name = document.getElementById('cc-name').value.trim();
   if (!name) { alert('Ponele un nombre al acorde'); return; }
   customChords[name] = { fingers: [...ccFrets], barre: null };
-  localStorage.setItem('sp-custom-chords', JSON.stringify(customChords));
+  saveCustomChords();
   renderCustomChordList();
   closeCustomChordEditor();
   if (currentSongIndex >= 0) buildRail();
@@ -2002,7 +2009,7 @@ function renderCustomChordList() {
 function deleteCustomChord(name) {
   if (!confirm(`¿Borrar el acorde ${name}?`)) return;
   delete customChords[name];
-  localStorage.setItem('sp-custom-chords', JSON.stringify(customChords));
+  saveCustomChords();
   renderCustomChordList();
 }
 
@@ -2073,13 +2080,13 @@ function handleImportFile(event) {
         songs = newSongs;
         customChords = newChords;
         currentSongIndex = -1;
-        document.getElementById('lyrics-wrapper').innerHTML = `<div id="placeholder"><div class="big">🎸</div><div>BUSKERSET</div><div style="font-size:0.8rem;margin-top:4px">Abrí el menú ☰ y cargá tu primera canción</div><div class="credit">diseñado por (H)ache</div></div>`;
+        document.getElementById('lyrics-wrapper').innerHTML = PLACEHOLDER_HTML;
         document.getElementById('song-title').textContent = 'BUSKERSET 🎸';
         document.getElementById('chord-rail').innerHTML = '';
         alert(`✅ Se cargaron ${newSongs.length} canción${newSongs.length !== 1 ? 'es' : ''}.`);
       }
       saveSongs();
-      localStorage.setItem('sp-custom-chords', JSON.stringify(customChords));
+      saveCustomChords();
       renderSongList();
       renderCustomChordList();
     } catch(err) {
@@ -2133,6 +2140,9 @@ function closeSidebar() {
   }
 })();
 
+const TUNER_IN_TUNE = '#30d158';
+const TUNER_SHARP = '#ff9500';
+const TUNER_FLAT = '#0a84ff';
 //  TUNER  (rewritten v3 — YIN algorithm, non-blocking)
 
 const TUNER_INSTRUMENTS = {
@@ -2330,9 +2340,9 @@ function updateNeedle(cents, noteEl) {
 
   const abs = Math.abs(cents);
   let color, cls;
-  if (abs <= 8)       { color = '#22c55e'; cls = 'in-tune'; }
-  else if (cents > 8) { color = '#f97316'; cls = 'sharp';   }
-  else                { color = '#3b82f6'; cls = 'flat';     }
+  if (abs <= 8)       { color = TUNER_IN_TUNE; cls = 'in-tune'; }
+  else if (cents > 8) { color = TUNER_SHARP; cls = 'sharp';   }
+  else                { color = TUNER_FLAT; cls = 'flat';     }
 
   needle.className    = cls;
   fill.style.background = color;
@@ -2585,11 +2595,9 @@ function saveCifraImport() {
   closeCifraImport();
 }
 
-
 window.addEventListener('beforeunload', () => {
   if (currentSongIndex >= 0) localStorage.setItem('sp-last-song', currentSongIndex);
 });
-
 
 </script>
 </body>
