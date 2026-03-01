@@ -426,9 +426,6 @@ body.show-mode-paused .line-lyric .chord-token {
 #cifra-overlay.open { display:flex; }
 #cifra-modal { background:var(--panel-bg2); border-radius:18px 18px 0 0; width:100%; max-width:520px; margin:0 auto; padding:20px 18px env(safe-area-inset-bottom,16px); max-height:92vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
 #cifra-modal h3 { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:1.2rem; color:var(--chord-color); margin:0 0 4px; }
-#cifra-url-input { width:100%; padding:10px 12px; background:var(--panel-input-bg); border:1px solid var(--ui-border); border-radius:8px; color:var(--panel-text); font-family:'Courier Prime',monospace; font-size:0.85rem; box-sizing:border-box; }
-#cifra-fetch-btn { padding:10px 16px; background:var(--chord-color); border:none; border-radius:8px; color:var(--bg); font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:0.9rem; cursor:pointer; white-space:nowrap; }
-#cifra-fetch-status { font-family:'Courier Prime',monospace; font-size:0.75rem; color:var(--ui-text); min-height:1.2em; padding:2px 0; }
 #cifra-paste-area { width:100%; padding:10px 12px; background:var(--panel-input-bg); border:1px solid var(--ui-border); border-radius:8px; color:var(--panel-text); font-family:'Courier Prime',monospace; font-size:0.75rem; resize:vertical; box-sizing:border-box; margin-top:4px; }
 #cifra-parse-paste-btn { padding:9px 16px; background:var(--panel-bg); border:1px solid var(--ui-border); border-radius:8px; color:var(--ui-text); font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:0.85rem; cursor:pointer; }
 #cifra-preview-name { width:100%; padding:10px 12px; background:var(--panel-input-bg); border:1px solid var(--ui-border); border-radius:8px; color:var(--panel-text); font-family:'Courier Prime',monospace; font-size:0.9rem; box-sizing:border-box; }
@@ -904,22 +901,14 @@ body.show-mode-paused .line-lyric .chord-token {
 <!-- CIFRA CLUB IMPORT MODAL -->
 <div id="cifra-overlay" onclick="closeCifraImport()">
   <div id="cifra-modal" onclick="event.stopPropagation()">
-    <h3 id="cifra-modal-title">🔗 IMPORTAR DE CIFRA CLUB</h3>
+    <h3>🔗 IMPORTAR DE CIFRA CLUB</h3>
 
-    <!-- Step 1: URL + fetch -->
     <div id="cifra-step-url">
-      <label class="hint">Pegá el link de la canción en Cifra Club:</label>
-      <div style="display:flex;gap:8px;margin-top:6px">
-        <input type="url" id="cifra-url-input" placeholder="https://www.cifraclub.com.ar/artista/cancion/" style="flex:1">
-        <button id="cifra-fetch-btn" onclick="fetchCifra()">BUSCAR</button>
-      </div>
-      <div id="cifra-fetch-status"></div>
-      <div class="hint" style="margin-top:10px">¿No funcionó? Abrí la página en el navegador, seleccioná todo (<b>Ctrl+A</b>), copiá (<b>Ctrl+C</b>) y pegá abajo:</div>
-      <textarea id="cifra-paste-area" placeholder="Pegá aquí el contenido copiado de la página de Cifra Club..." rows="5"></textarea>
-      <button id="cifra-parse-paste-btn" onclick="parsePastedCifra()">PROCESAR TEXTO PEGADO</button>
+      <label class="hint">Abrí la canción en Cifra Club, seleccioná todo (<b>Ctrl+A</b>), copiá (<b>Ctrl+C</b>) y pegá acá:</label>
+      <textarea id="cifra-paste-area" placeholder="Pegá aquí el contenido copiado de la página..." rows="7"></textarea>
+      <button id="cifra-parse-paste-btn" onclick="parsePastedCifra()">PROCESAR</button>
     </div>
 
-    <!-- Step 2: Preview & edit before saving -->
     <div id="cifra-step-preview" style="display:none">
       <label class="hint">Nombre de la canción:</label>
       <input type="text" id="cifra-preview-name">
@@ -2429,221 +2418,85 @@ function stopReferenceNote() {
 function openCifraImport() {
   closeSidebar();
   document.getElementById('cifra-overlay').classList.add('open');
-  document.getElementById('cifra-step-url').style.display = '';
   document.getElementById('cifra-step-preview').style.display = 'none';
   document.getElementById('cifra-save-btn').style.display = 'none';
-  document.getElementById('cifra-url-input').value = '';
   document.getElementById('cifra-paste-area').value = '';
-  document.getElementById('cifra-fetch-status').textContent = '';
 }
 
 function closeCifraImport() {
   document.getElementById('cifra-overlay').classList.remove('open');
 }
 
-async function fetchCifra() {
-  const url = document.getElementById('cifra-url-input').value.trim();
-  if (!url || !url.includes('cifraclub')) {
-    setFetchStatus('⚠️ Ingresá un link válido de Cifra Club', 'warn'); return;
-  }
-  setFetchStatus('⏳ Buscando canción...', '');
-  document.getElementById('cifra-fetch-btn').disabled = true;
-
-  // Try multiple CORS proxies in sequence
-  const proxies = [
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-  ];
-
-  let html = null;
-  for (const makeUrl of proxies) {
-    try {
-      const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) continue;
-      const data = await res.json().catch(() => null);
-      // allorigins wraps in {contents}; others return raw text
-      const text = data?.contents ?? await res.text?.() ?? '';
-      if (text.length > 500) { html = text; break; }
-    } catch(e) { continue; }
-  }
-
-  document.getElementById('cifra-fetch-btn').disabled = false;
-
-  if (!html) {
-    setFetchStatus('❌ No se pudo obtener la página. Usá el método de pegar abajo.', 'error');
-    return;
-  }
-
-  const result = parseCifraHtml(html);
-  if (!result) {
-    setFetchStatus('❌ No se encontró la cifra. Probá pegando el contenido de la página.', 'error');
-    return;
-  }
-
-  setFetchStatus('✅ Canción encontrada!', 'ok');
-  showCifraPreview(result.name, result.lyrics);
-}
-
 function parsePastedCifra() {
   const text = document.getElementById('cifra-paste-area').value.trim();
-  if (!text) { setFetchStatus('⚠️ Pegá el contenido primero', 'warn'); return; }
-
-  // The pasted content could be: raw HTML, or plain text from the page
-  let result = null;
-  if (text.includes('<') && text.includes('>')) {
-    result = parseCifraHtml(text);
-  }
-  if (!result) {
-    result = parseCifraPlainText(text);
-  }
-
+  if (!text) return;
+  const result = parseCifraPlainText(text);
   if (!result || !result.lyrics) {
-    setFetchStatus('❌ No se pudo detectar la estructura. Revisá que copiaste la página completa.', 'error');
+    alert('No se pudo detectar la estructura. Asegurate de copiar la página completa con Ctrl+A → Ctrl+C.');
     return;
   }
-  setFetchStatus('✅ Canción procesada!', 'ok');
   showCifraPreview(result.name, result.lyrics);
 }
 
-// ── PARSER: HTML source of cifraclub page ──
-function parseCifraHtml(html) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-
-  // Title: try multiple selectors Cifra Club uses
-  const titleEl = doc.querySelector('h1.t1, h1[class*="title"], h1, .cifra-title');
-  const artistEl = doc.querySelector('h2.t1, h2[class*="artist"], h2.band-font, .artist-name');
-  const title  = titleEl?.textContent?.trim() || '';
-  const artist = artistEl?.textContent?.trim() || '';
-  const songName = artist && title ? `${artist} - ${title}` : title || artist || 'Canción importada';
-
-  // Lyrics block: cifraclub wraps cifra in <pre> inside div.cifra or similar
-  // Try common selectors
-  const cifraEl = doc.querySelector('pre.cifra, div.cifra pre, #cifra-print pre, .g-cifra pre, pre');
-  if (cifraEl) {
-    const lyrics = convertCifraHtmlToText(cifraEl);
-    if (lyrics.trim().length > 20) return { name: songName, lyrics };
-  }
-
-  // Fallback: find any <pre> with chord content
-  const pres = doc.querySelectorAll('pre');
-  for (const pre of pres) {
-    const text = pre.textContent || '';
-    if (text.length > 100 && /[A-G][m#b]?/.test(text)) {
-      const lyrics = convertCifraHtmlToText(pre);
-      return { name: songName, lyrics };
-    }
-  }
-
-  return null;
-}
-
-// Convert Cifra Club's <pre> HTML to BuskerSet inline format
-// Cifra Club uses <b> or <span class="ac"> for chord names above lyric lines
-function convertCifraHtmlToText(pre) {
-  // Strategy 1: chords are in <b> tags inline within lyric text
-  // e.g.: <b>Am</b>Caminando por <b>G</b>las calles
-  // → keep as-is, extract as chord-above-lyric pairs
-
-  // Clone to work with
-  const clone = pre.cloneNode(true);
-
-  // Cifra Club sometimes uses <b> for chords inline
-  // Check if this is inline format
-  const boldTags = clone.querySelectorAll('b');
-  const isInline = boldTags.length > 0 && [...boldTags].every(b => /^[A-G][b#]?/.test(b.textContent.trim()));
-
-  if (isInline && boldTags.length > 2) {
-    // Convert <b>Chord</b>text to [Chord]text format
-    boldTags.forEach(b => {
-      const chord = b.textContent.trim();
-      if (/^[A-G][b#]?(m|maj|dim|aug|sus|add|[0-9])?/.test(chord)) {
-        b.replaceWith(`[${chord}]`);
-      }
-    });
-    return clone.textContent
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
-
-  // Cifra Club also uses <span class="ac"> for chords above lyrics
-  const acSpans = clone.querySelectorAll('.ac, [class*="chord"], [class*="ac"]');
-  if (acSpans.length > 2) {
-    acSpans.forEach(s => {
-      const chord = s.textContent.trim();
-      if (/^[A-G]/.test(chord)) s.replaceWith(`[${chord}]`);
-    });
-    return clone.textContent
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
-
-  // Plain text: chords are on separate lines above lyric lines (Cifra Club classic format)
-  // Just return the raw text — BuskerSet already parses this format natively
-  return pre.textContent
-    .replace(/\r\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-// ── PARSER: plain text pasted from browser (Ctrl+A, Ctrl+C) ──
 function parseCifraPlainText(text) {
   const lines = text.split('\n').map(l => l.trimEnd());
 
-  // Find where the actual cifra starts — skip header/nav garbage
-  // Cifra Club pages start the cifra section after lines like "Afinação:" or "Tom:"
-  let startIdx = 0;
-  for (let i = 0; i < Math.min(lines.length, 60); i++) {
-    if (/^(Tom:|Afinação:|Capo|Intro|Verso|Refrão|[A-G][b#]?m?\s+[A-G])/i.test(lines[i].trim())) {
-      startIdx = i; break;
-    }
-  }
-
-  // Extract title — usually one of the first meaningful lines
-  let name = 'Canción importada';
-  for (let i = 0; i < Math.min(startIdx, 20); i++) {
+  // Detect title/artist from early lines before the cifra body
+  let title = '', artist = '';
+  const navWords = /^(Inicio|Home|Cifra|Menu|Login|Buscar|Search|Top|Ver |Toca|Escuchar|Blog|Apps|Síguenos|Idiomas|Studio|Hecho|https?:|www\.|Acordes|Canciones|Novedades|Videos|Únete)/i;
+  for (let i = 0; i < Math.min(lines.length, 40); i++) {
     const l = lines[i].trim();
-    if (l.length > 3 && l.length < 80 && !/^(https?|www|Cifra|Menu|Login|Buscar)/i.test(l)) {
-      name = l; break;
+    if (!l || navWords.test(l) || l.length > 80) continue;
+    if (!/^[A-G][b#]?[\s]/.test(l)) {
+      if (!title) { title = l; continue; }
+      if (!artist && l !== title) { artist = l; break; }
     }
   }
+  const songName = (artist && title) ? `${artist} - ${title}` : title || 'Canción importada';
 
-  // Find end of cifra — usually page footer / "Mais acessadas" / "Músicas relacionadas"
+  // Find start: first line that looks like a chord line
+  const CHORD_RE = /^[A-G][b#]?(m(?:aj)?7?|maj7?|dim|aug|sus[24]?|add9?|[5679]|11|13|m7b5|7sus4)?([b#]5)?$/;
+  const isChordWord = w => CHORD_RE.test(w);
+  const looksLikeChordLine = l => {
+    const words = l.trim().split(/\s+/);
+    if (!words.length || words.length > 10) return false;
+    const n = words.filter(isChordWord).length;
+    return n >= 1 && n / words.length >= 0.5;
+  };
+
+  let startIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (looksLikeChordLine(lines[i])) { startIdx = i; break; }
+  }
+  if (startIdx === -1) return null;
+
+  // Find end: Cifra Club footer markers
+  const END_MARKERS = [
+    /^Composici[oó]n de /i, /^Composição de /i,
+    /^Colaboraci[oó]n/i, /^Colaboração/i,
+    /^\d{2,}\.\d{3} visualizaciones/i,
+    /^Desplazar$/i, /^½ Tonalidad/i,
+    /^Los m[aá]s vistos de /i, /^Blog de Cifra/i,
+    /^Toca tambi[eé]n/i, /^[X0-9]{6}$/,
+  ];
   let endIdx = lines.length;
-  for (let i = startIdx + 10; i < lines.length; i++) {
-    if (/^(Músicas|Vídeo aula|Mais acessadas|Comentários|Compartilhar|Reportar|©)/i.test(lines[i].trim())) {
-      endIdx = i; break;
-    }
+  for (let i = startIdx + 5; i < lines.length; i++) {
+    if (END_MARKERS.some(re => re.test(lines[i].trim()))) { endIdx = i; break; }
   }
 
-  const lyrics = lines.slice(startIdx, endIdx)
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  return lyrics.length > 30 ? { name, lyrics } : null;
-}
-
-function setFetchStatus(msg, type) {
-  const el = document.getElementById('cifra-fetch-status');
-  el.textContent = msg;
-  el.style.color = type === 'ok' ? '#22c55e' : type === 'error' ? '#ef4444' : type === 'warn' ? '#f97316' : 'var(--ui-text)';
+  const lyrics = lines.slice(startIdx, endIdx).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return lyrics.length > 20 ? { name: songName, lyrics } : null;
 }
 
 function showCifraPreview(name, lyrics) {
   document.getElementById('cifra-step-preview').style.display = '';
   document.getElementById('cifra-preview-name').value = name;
   document.getElementById('cifra-preview-lyrics').value = lyrics;
-  const lines = lyrics.split('\n').length;
   const chords = (lyrics.match(/[A-G][b#]?(m|maj|dim|aug|sus|add|[0-9])?/g) || []).length;
   document.getElementById('cifra-preview-stats').textContent =
-    `${lines} líneas · ~${chords} acordes detectados — editá si es necesario antes de guardar`;
+    `${lyrics.split('\n').length} líneas · ~${chords} acordes — editá si es necesario antes de guardar`;
   document.getElementById('cifra-save-btn').style.display = '';
-  // Scroll to preview
-  setTimeout(() => document.getElementById('cifra-step-preview').scrollIntoView({ behavior:'smooth' }), 100);
+  setTimeout(() => document.getElementById('cifra-step-preview').scrollIntoView({ behavior: 'smooth' }), 100);
 }
 
 function saveCifraImport() {
@@ -2654,7 +2507,6 @@ function saveCifraImport() {
   songs.push({ name, lyrics });
   saveSongs();
   renderSongList();
-  // Load the song immediately
   transposeSteps = 0;
   updateTransposeDisplay();
   renderSong(songs.length - 1);
